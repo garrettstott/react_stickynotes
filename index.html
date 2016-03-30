@@ -1,0 +1,206 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <script src="https://fb.me/react-0.14.7.js"></script>
+   <script src="https://fb.me/react-dom-0.14.7.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.2/marked.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha/js/bootstrap.min.js"></script>
+   <link rel='stylesheet' href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha/css/bootstrap.min.css" />
+
+   <style>
+
+    .count {
+      margin-top: 10px
+    }
+    
+    body {
+      background-color: black;
+      color: white;
+    }
+    input {
+      color: black;
+    }
+
+    .checked {
+      background-color: red;
+      color: white;
+    }
+
+    .not-checked {
+      background-color: grey;
+    }
+
+    .card {
+      height: 300px;
+      width: 350px;
+      margin: 5px;
+    }
+
+    .delete {
+      float:right;
+      margin-top: 5px;
+    }
+
+    .name {
+      font-weight: bold;
+      font-size: 20px;
+      margin-top: 10px;
+    }
+
+    .checkbox {
+      position: absolute;
+      bottom: 0;
+    }
+   </style>
+  </head>
+
+  <body>
+    <div id='content' class='container'>
+    </div>
+
+    <script type='text/babel'>
+      class Notes extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { items: [], complete: 0, nextID: 0 };
+          this.addItem = this.addItem.bind(this);
+          this.items = this.items.bind(this);
+          this.completeCount = this.completeCount.bind(this);
+          this.refreshCount = this.refreshCount.bind(this);
+          this.deleteItem = this.deleteItem.bind(this);
+        }
+
+        completeCount() {
+          let complete = this.state.complete;
+          return(<h4 className='count'>{`${complete}/${this.state.items.length} complete`}</h4>);
+        }
+
+        refreshCount(id, checked) {
+          let itemArray = this.state.items;
+          let index = itemArray.findIndex( x => x.id === id);
+          let item = itemArray.splice(index, 1)[0];
+          item.complete = checked;
+          let complete = this.state.complete;
+          if (checked) {
+            itemArray.push(item);
+            complete++;
+          } else {
+            itemArray.unshift(item);
+            complete--;
+          }
+
+          this.setState({complete: complete, items: itemArray});
+        }
+
+        deleteItem(id) {
+          let itemArray = this.state.items;
+          let index = itemArray.findIndex( x => x.id === id );
+          let checked = itemArray[index].complete;
+          let complete = checked ? (this.state.complete -1) : this.state.complete;
+          itemArray.splice(index, 1);
+          this.setState({
+            items: itemArray,
+            complete: complete,
+            nextID: this.incID(this.state.nextID)
+          });
+        }
+
+        addItem(e) {
+          e.preventDefault();
+          let items = this.state.items;
+          items.unshift({
+            name: this.refs.name.value,
+            complete: false,
+            id: this.state.nextID
+          });
+          this.refs.name.value = null;
+          this.setState({ items: items, nextID: this.incID(this.state.nextID) 
+          });
+        }
+
+        incID(id) {
+          return id += 1;
+        }
+
+        items() {
+          let items = [];
+          this.state.items.map( item => {
+            items.push(
+              <Item 
+                key={`item-${item.id}`}
+                {...item}
+                deleteItem={this.deleteItem}
+                refreshCount={this.refreshCount}
+              />
+            );
+          });
+          return items;
+        }
+
+        render() {
+          return(
+            <div className="text-center">
+              <h1>Sticky Notes</h1>
+              <form onSubmit={this.addItem}>
+                <input autoFocus="true" id='name' placeholder='Add Note' type='text' ref='name' />
+              </form>
+              {this.completeCount()}
+              <br />
+              <div className="row">
+                {this.items()}
+              </div>
+            </div>
+          );
+        }
+      }
+
+      class Item extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { checked: this.props.complete, style: {} };
+          this.toggleChecked = this.toggleChecked.bind(this);
+        }
+
+        toggleChecked() {
+          let complete = !this.state.checked;
+          this.props.refreshCount(this.props.id, complete)
+          let style = {};
+          if (complete) {
+            style = {
+              
+            }
+          }
+          this.setState({ checked: complete, style: style });
+        }
+
+        render() {
+          let id = `complete-${this.props.id}`;
+          let color = this.state.checked? 'checked' : 'not-checked';
+          return(
+            <div className={`${color} card col-sm-3`}>
+              <div style={{cursor: 'pointer'}} onClick={() => this.props.deleteItem(this.props.id)} className='delete col-sm-1'>
+                X 
+              </div>
+              <div className='name col-sm-12' style={this.state.style}>
+              {this.props.name}
+              </div>
+              <br />
+              <div className='checkbox col-md-3'>
+                <input onChange={this.toggleChecked} type='checkbox' id={id}
+                defaultChecked={this.props.checked} />
+                <label htmlFor={id}>Complete?</label>
+              </div>
+            </div>
+          );
+        }
+      }
+
+      ReactDOM.render(<Notes />, document.getElementById('content'));
+    </script>
+  </body>
+</html>
